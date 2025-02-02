@@ -1,1 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spin the Wheel 3D</title>
+  <style>
+    body {
+      background-color: #121212;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      flex-direction: column;
+      margin: 0;
+    }
 
+    h1 {
+      margin-bottom: 20px;
+    }
+
+    .wheel-container {
+      position: relative;
+      width: 400px;
+      height: 400px;
+      border-radius: 50%;
+      border: 10px solid #fff;
+      perspective: 1000px;
+      margin-bottom: 20px;
+    }
+
+    .wheel {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background-color: #444;
+      transform-style: preserve-3d;
+      transform: rotateX(0deg);
+      transition: transform 3s ease-out;
+    }
+
+    .wheel div {
+      position: absolute;
+      width: 50%;
+      height: 50%;
+      background-color: #f3f3f3;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .selector {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+
+    .selector select, .selector input, .selector button {
+      background-color: #333;
+      border: 2px solid #fff;
+      padding: 10px;
+      margin: 0 10px;
+      color: #fff;
+      font-size: 16px;
+      border-radius: 5px;
+    }
+
+    .confetti {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      display: none;
+    }
+
+    .confetti > div {
+      position: absolute;
+      background-color: #ff0;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      opacity: 0;
+      animation: confetti-animation 1.5s forwards;
+    }
+
+    @keyframes confetti-animation {
+      0% {
+        opacity: 1;
+        transform: translate(0, 0);
+      }
+      100% {
+        opacity: 0;
+        transform: translate(200px, 200px);
+      }
+    }
+
+    .spin-button {
+      background-color: #28a745;
+      border: none;
+      padding: 15px 30px;
+      color: #fff;
+      font-size: 18px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .spin-button:active {
+      transform: scale(0.9);
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Spin The Wheel</h1>
+
+  <div class="selector">
+    <select id="wheelType">
+      <option value="numbers">Random Numbers</option>
+      <option value="colors">Random Colors</option>
+      <option value="names">Random Names</option>
+      <option value="countries">Random Countries</option>
+      <option value="percentages">Random Percentages</option>
+      <option value="custom">Custom Wheel</option>
+    </select>
+    <input type="number" id="minNumber" placeholder="Min" style="display: none;">
+    <input type="number" id="maxNumber" placeholder="Max" style="display: none;">
+    <button class="spin-button" onclick="spinWheel()">Spin</button>
+  </div>
+
+  <div class="wheel-container">
+    <div class="wheel" id="wheel"></div>
+    <div class="confetti" id="confetti"></div>
+  </div>
+
+  <script>
+    let wheelType = document.getElementById('wheelType');
+    let minNumber = document.getElementById('minNumber');
+    let maxNumber = document.getElementById('maxNumber');
+    let wheel = document.getElementById('wheel');
+    let confetti = document.getElementById('confetti');
+    let items = [];
+    let wheelItems = [];
+    
+    // Fetch the JSON data for the wheel types
+    const fetchJSON = async () => {
+      const colorData = await fetch('https://raw.githubusercontent.com/Maskedlll/Random-wheel/refs/heads/main/json%20files/colors.json').then(res => res.json());
+      const namesData = await fetch('https://raw.githubusercontent.com/Maskedlll/Random-wheel/refs/heads/main/json%20files/names.json').then(res => res.json());
+      const countriesData = await fetch('https://raw.githubusercontent.com/Maskedlll/Random-wheel/refs/heads/main/json%20files/countries.json').then(res => res.json());
+
+      return { colorData, namesData, countriesData };
+    };
+
+    const generateWheel = (type) => {
+      items = [];
+      wheelItems = [];
+      switch (type) {
+        case 'numbers':
+          let min = parseInt(minNumber.value);
+          let max = parseInt(maxNumber.value);
+          for (let i = min; i <= max; i++) {
+            items.push({ value: i, color: '#FF6347' });
+          }
+          break;
+        case 'percentages':
+          for (let i = 1; i <= 100; i++) {
+            items.push({ value: `${i}%`, color: '#FFD700' });
+          }
+          break;
+        case 'colors':
+          fetchJSON().then(data => {
+            Object.keys(data.colorData).forEach(color => {
+              items.push({ value: color, color: data.colorData[color] });
+            });
+            buildWheel();
+          });
+          return;
+        case 'names':
+          fetchJSON().then(data => {
+            Object.keys(data.namesData).forEach(name => {
+              items.push({ value: name, color: data.namesData[name] });
+            });
+            buildWheel();
+          });
+          return;
+        case 'countries':
+          fetchJSON().then(data => {
+            Object.keys(data.countriesData).forEach(country => {
+              items.push({ value: country, color: data.countriesData[country] });
+            });
+            buildWheel();
+          });
+          return;
+        case 'custom':
+          let customItems = prompt("Enter custom items (separated by commas):");
+          let customColors = prompt("Enter colors for items (separated by commas, in hex):");
+          customItems = customItems.split(",");
+          customColors = customColors.split(",");
+          for (let i = 0; i < customItems.length; i++) {
+            items.push({ value: customItems[i], color: customColors[i] });
+          }
+          break;
+      }
+      buildWheel();
+    };
+
+    const buildWheel = () => {
+      wheel.innerHTML = '';
+      let angleStep = 360 / items.length;
+      items.forEach((item, index) => {
+        let segment = document.createElement('div');
+        segment.style.transform = `rotate(${angleStep * index}deg) translateY(-50%)`;
+        segment.style.backgroundColor = item.color;
+        segment.innerText = item.value;
+        wheel.appendChild(segment);
+      });
+    };
+
+    const spinWheel = () => {
+      let randomDeg = Math.floor(Math.random() * 360);
+      let rotation = `rotate(${randomDeg}deg)`;
+      wheel.style.transform = `rotate(${randomDeg}deg)`;
+      showConfetti();
+    };
+
+    const showConfetti = () => {
+      confetti.style.display = 'block';
+      for (let i = 0; i < 100; i++) {
+        let confettiPiece = document.createElement('div');
+        confettiPiece.style.left = `${Math.random() * 100}%`;
+        confettiPiece.style.animationDuration = `${Math.random() * 2 + 1}s`;
+        confettiPiece.style.animationDelay = `${Math.random() * 2}s`;
+        confetti.appendChild(confettiPiece);
+      }
+      setTimeout(() => confetti.style.display = 'none', 2000);
+    };
+
+    wheelType.addEventListener('change', () => {
+      let selectedType = wheelType.value;
+      if (selectedType === 'numbers' || selectedType === 'percentages') {
+        minNumber.style.display = 'inline-block';
+        maxNumber.style.display = 'inline-block';
+      } else {
+        minNumber.style.display = 'none';
+        maxNumber.style.display = 'none';
+      }
+      generateWheel(selectedType);
+    });
+
+    generateWheel('numbers'); // Initialize the wheel with numbers by default
+  </script>
+
+</body>
+</html>
